@@ -259,6 +259,20 @@ check('reasoning off only when declared', sent.reasoningEffort === 'off' && ctx.
   check('held calls still finish', settled.every(payload => payload.ok === true), JSON.stringify(settled))
 }
 
+// 16. the default-model service is reachable by name even when it is not a ctx property
+{
+  const named = makeContext()
+  const selection = named.agentDefaultModel
+  delete named.agentDefaultModel
+  named.get = name => (name === 'llm' ? named.llm : name === 'agentDefaultModel' ? selection : undefined)
+  apply(named, {})
+  const req = makeRequest('POST', '/dsh-prompt-optimizer/optimize', { text: 'hi' })
+  const res = makeResponse()
+  await named.state.route.handler(req, res)
+  const payload = JSON.parse(res.record.body)
+  check('selection via ctx.get -> ok', payload.ok === true && payload.model === 'deepseek-account/deepseek-flash', res.record.body)
+}
+
 const failed = results.filter(result => !result.passed)
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`)
 if (failed.length > 0) process.exitCode = 1

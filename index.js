@@ -55,7 +55,7 @@ const ROUTE_PREFIX = '/dsh-prompt-optimizer'
 const CALL_IDENTITY = 'dsh-prompt-optimizer'
 
 /** Plugin version, mirrored into `/health` for support reports. */
-const VERSION = '1.0.0'
+const VERSION = '1.0.1'
 
 /** Hard ceiling on one request body, so a hostile page cannot balloon memory. */
 const MAX_BODY_BYTES = 256 * 1024
@@ -63,7 +63,11 @@ const MAX_BODY_BYTES = 256 * 1024
 /** Requests handled at once before newcomers are refused with `BUSY`. */
 const MAX_IN_FLIGHT = 2
 
-/** The `webServer` route is the only hard dependency: without it there is no transport. */
+/**
+ * The `webServer` route is the only hard dependency: without it there is no
+ * transport. `llm` and `agentDefaultModel` are resolved by name at call time so a
+ * trimmed-down host degrades to an error notice instead of blocking the bundle.
+ */
 export const inject = ['webServer']
 
 /** System prompt: Chinese draft path. */
@@ -125,13 +129,36 @@ function readOptions(config) {
 
 /** The session's own model selection, when the service is present. */
 function currentSelection(ctx) {
+  const service = modelSelectionOf(ctx)
+  if (!service) return undefined
   try {
-    const picked = ctx.agentDefaultModel?.currentSelection?.()
+    const picked = service.currentSelection()
     if (picked && typeof picked.provider === 'string' && typeof picked.model === 'string') {
       return { provider: picked.provider, model: picked.model }
     }
   } catch {
     /* a stripped-down host: the caller reports NO_MODEL instead */
+  }
+  return undefined
+}
+
+/**
+ * Resolve the default-model service without adding a hard dependency: an
+ * injected `agentDefaultModel` is used directly, and a context that only exposes
+ * `get()` is asked for it by name.
+ */
+function modelSelectionOf(ctx) {
+  try {
+    const direct = ctx.agentDefaultModel
+    if (direct && typeof direct.currentSelection === 'function') return direct
+  } catch {
+    /* not injected in this host: fall through to the named lookup */
+  }
+  try {
+    const looked = typeof ctx.get === 'function' ? ctx.get('agentDefaultModel', false) : undefined
+    if (looked && typeof looked.currentSelection === 'function') return looked
+  } catch {
+    /* a strict context refuses unknown services */
   }
   return undefined
 }
