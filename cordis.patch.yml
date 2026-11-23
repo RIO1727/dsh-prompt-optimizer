@@ -1,0 +1,18 @@
+# dsh-prompt-optimizer bundle patch
+#
+# One row: the Host half, which owns the model call and the
+# /dsh-prompt-optimizer HTTP route. The Client half is declared by
+# package.json's `dsh.client` section and needs no row of its own — installing
+# this bundle mounts both halves and adds the button to the composer.
+#
+# Every knob is optional; delete the `config` block to keep the defaults.
+#   maxChars     12000   longest draft accepted, in characters
+#   timeoutMs    90000   model-call budget, in milliseconds
+#   temperature  0.6     sampling temperature for the rewrite
+#   reasoning    off     'off' skips extended thinking, 'keep' uses the model default
+#   provider     -       override the conversation's provider
+#   model        -       override the conversation's model
+- insert:
+    - id: dsh-prompt-optimizer
+      name: 'dsh-prompt-optimizer'
+      config: {}

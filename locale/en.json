@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Prompt Optimizer",
+    "description": "Adds a sparkle button just left of Send that rewrites the composer draft into a clearer, more executable prompt using the conversation's own model, with one-click undo."
+  }
+}
