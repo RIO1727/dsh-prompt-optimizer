@@ -122,6 +122,8 @@ Client half (client.js)                    Host half (index.js)
 | "Optimization failed: … no model configured" | Pick a model in the conversation (or set `provider`/`model` in the config). |
 | Always "another optimization is still running" | Two rewrites are already in flight somewhere in this DSH instance; wait for them. |
 | Button does nothing on a huge draft | Drafts over `maxChars` are refused with a notice — trim it or raise `maxChars`. |
+| `… failed to import: Cannot find package '@deepseek-ai/dsh-llm'` in the host log | The loader only maps `@deepseek-ai/*` to the running installation when the plugin declares it under `peerDependencies`. Keep that row in `package.json` (this package ships it). |
+| `/health` answers but `llmRuntime` is `false` | The plugin mounts, but the LLM helpers are unreachable — the DSH build predates `@deepseek-ai/dsh-llm` or the peer row was removed. |
 
 ## Development
 

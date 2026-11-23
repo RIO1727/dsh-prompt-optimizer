@@ -12,7 +12,37 @@
  * conversation's own provider/model (`agentDefaultModel.currentSelection()`), so
  * a user who already configured a provider needs no extra credentials.
  */
-import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
+/**
+ * The Harness LLM helpers are loaded lazily on purpose.
+ *
+ * The loader maps a bare `@deepseek-ai/*` request to the running installation
+ * only when the importing package declares that name in `peerDependencies`, so
+ * that row is what makes this import resolve at all. Keeping it dynamic means a
+ * runtime that cannot satisfy it still mounts the plugin: `/health` answers, and
+ * an optimization reports `NO_LLM_RUNTIME` instead of the whole bundle failing
+ * to import (which is how a static import blows up the loader entry).
+ */
+let llmModulePromise
+
+function loadLlmModule() {
+  if (llmModulePromise === undefined) {
+    llmModulePromise = import('@deepseek-ai/dsh-llm')
+    llmModulePromise.catch(() => {
+      llmModulePromise = undefined
+    })
+  }
+  return llmModulePromise
+}
+
+/** True when the Harness LLM helpers can be loaded in this runtime. */
+async function llmRuntimeAvailable() {
+  try {
+    await loadLlmModule()
+    return true
+  } catch {
+    return false
+  }
+}
 
 /** Route prefix owned by this plugin; the Client resolves it against the page base. */
 const ROUTE_PREFIX = '/dsh-prompt-optimizer'
@@ -191,6 +221,17 @@ async function optimize(ctx, options, text, locale, signal) {
   }
   const system = locale === 'en' ? SYSTEM_EN : SYSTEM_ZH
   const off = options.reasoning === 'off' && (await supportsReasoningOff(llm, provider, model))
+  let helpers
+  try {
+    helpers = await loadLlmModule()
+  } catch (error) {
+    return {
+      ok: false,
+      error: 'NO_LLM_RUNTIME',
+      message: `the Harness LLM helpers are unavailable: ${error instanceof Error ? error.message : String(error)}`,
+    }
+  }
+  const { BlockAssembler, createUserMessage } = helpers
   const request = {
     provider,
     model,
@@ -265,6 +306,7 @@ export function apply(ctx, config) {
               version: VERSION,
               route: ROUTE_PREFIX,
               llm: Boolean(llmOf(ctx)),
+              llmRuntime: await llmRuntimeAvailable(),
               model: provider && model ? `${provider}/${model}` : null,
               maxChars: options.maxChars,
             })

@@ -122,6 +122,8 @@ Client 半侧 (client.js)                    Host 半侧 (index.js)
 | 提示「优化失败：… no model configured」 | 在会话里选个模型，或在配置里指定 `provider`/`model`。 |
 | 一直提示「上一条优化还没结束」 | 这个 DSH 实例里已有 2 个改写在进行，等它们结束。 |
 | 草稿很长时按钮只弹提示 | 超过 `maxChars` 会被拒绝——精简草稿，或调大 `maxChars`。 |
+| Host 日志里出现 `… failed to import: Cannot find package '@deepseek-ai/dsh-llm'` | 只有插件在 `peerDependencies` 里声明了该包，loader 才会把裸包名映射到运行中的 DSH 安装。请保留 `package.json` 里这一行（本包自带）。 |
+| `/health` 能通，但 `llmRuntime` 为 `false` | 插件挂上了，但 LLM 助手包取不到——当前 DSH 版本没有 `@deepseek-ai/dsh-llm`，或 peer 声明被删了。 |
 
 ## 开发
 
