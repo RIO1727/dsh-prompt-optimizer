@@ -55,7 +55,7 @@ const ROUTE_PREFIX = '/dsh-prompt-optimizer'
 const CALL_IDENTITY = 'dsh-prompt-optimizer'
 
 /** Plugin version, mirrored into `/health` for support reports. */
-const VERSION = '1.0.1'
+const VERSION = '1.0.2'
 
 /** Hard ceiling on one request body, so a hostile page cannot balloon memory. */
 const MAX_BODY_BYTES = 256 * 1024
@@ -83,6 +83,7 @@ const SYSTEM_ZH = [
   '- 草稿本身已经很好时，只做最小必要润色，不要为了改而改。',
   '- 不要添加“如果还有问题请告诉我”“请确认”这类客套话。',
   '- 草稿里的代码块、URL、@文件引用原样保留。',
+  '- 需要分行时直接换行；不要输出字面量 \n，也不要把整段提示词包进行内代码。',
 ].join('\n')
 
 /** System prompt: English draft path. */
@@ -98,6 +99,7 @@ const SYSTEM_EN = [
   '- If the draft is already good, make the smallest necessary polish instead of rewriting it.',
   '- Add no closing pleasantries such as "let me know if you need anything else".',
   '- Preserve code blocks, URLs and @file references exactly.',
+  '- Use real line breaks, not literal \n escapes, and never wrap the whole prompt in an inline code span.',
 ].join('\n')
 
 /** Clamp a configured number into a usable range. */
@@ -192,6 +194,20 @@ async function supportsReasoningOff(llm, provider, model) {
   }
 }
 
+/**
+ * Some models answer with the two characters `\` `n` where a line break belongs.
+ * Swap those for real newlines, but leave code spans and fenced blocks alone:
+ * inside code a backslash-n can be part of a regex or a string literal.
+ */
+function unescapeNewlines(text) {
+  const parts = text.split(/(```[\s\S]*?```|`[^`\n]*`)/g)
+  return parts
+    .map((part, index) =>
+      index % 2 === 1 ? part : part.replace(/\\r\\n|\\n/g, '\n'),
+    )
+    .join('')
+}
+
 /** Strip a wrapping code fence or a stray "optimized prompt:" label. */
 function cleanOutput(raw) {
   let text = String(raw ?? '').trim()
@@ -199,7 +215,7 @@ function cleanOutput(raw) {
   if (fenced) text = fenced[1].trim()
   const labeled = text.match(/^(?:优化后(?:的)?提示词|改写后(?:的)?提示词|optimized prompt|rewritten prompt)\s*[:：]\s*/i)
   if (labeled) text = text.slice(labeled[0].length).trim()
-  return text
+  return unescapeNewlines(text)
 }
 
 /** One JSON answer with no caching. */

@@ -1,6 +1,6 @@
 {
   "name": "dsh-prompt-optimizer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "AI prompt optimization for the DeepSeek Harness composer: a sparkle button just left of Send rewrites the draft with the conversation's own model.",
   "type": "module",
   "main": "index.js",

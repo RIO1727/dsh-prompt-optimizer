@@ -273,6 +273,33 @@ check('reasoning off only when declared', sent.reasoningEffort === 'off' && ctx.
   check('selection via ctx.get -> ok', payload.ok === true && payload.model === 'deepseek-account/deepseek-flash', res.record.body)
 }
 
+// 17. a model answering with a literal backslash-n gets real line breaks; a code span keeps its escape
+{
+  const NL = String.fromCharCode(10)
+  const ESC = String.fromCharCode(92) + 'n'
+  const escaped = makeContext({ streamText: 'A' + ESC + 'B `a' + ESC + 'b`' + ESC + 'C' })
+  apply(escaped, {})
+  const req = makeRequest('POST', '/dsh-prompt-optimizer/optimize', { text: 'hi' })
+  const res = makeResponse()
+  await escaped.state.route.handler(req, res)
+  const payload = JSON.parse(res.record.body)
+  check('literal escape becomes a line break', payload.ok === true && payload.text.split(NL).length === 3, JSON.stringify(payload.text))
+  check('code span keeps its escape', payload.text.includes('`a' + ESC + 'b`'), JSON.stringify(payload.text))
+}
+
+// 18. a code block embedded in the answer is not unescaped
+{
+  const NL = String.fromCharCode(10)
+  const ESC = String.fromCharCode(92) + 'n'
+  const fenced = makeContext({ streamText: '先改配置' + NL + '```js' + NL + 'const s = "x' + ESC + 'y"' + NL + '```' + NL + '再跑测试' })
+  apply(fenced, {})
+  const req = makeRequest('POST', '/dsh-prompt-optimizer/optimize', { text: 'hi' })
+  const res = makeResponse()
+  await fenced.state.route.handler(req, res)
+  const payload = JSON.parse(res.record.body)
+  check('embedded code block keeps its escape', payload.text.includes('const s = "x' + ESC + 'y"'), JSON.stringify(payload.text))
+}
+
 const failed = results.filter(result => !result.passed)
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`)
 if (failed.length > 0) process.exitCode = 1
