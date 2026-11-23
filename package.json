@@ -29,6 +29,18 @@
     "web-ui"
   ],
   "license": "MIT",
+  "author": {
+    "name": "RIO1727",
+    "url": "https://github.com/RIO1727"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RIO1727/dsh-prompt-optimizer.git"
+  },
+  "homepage": "https://github.com/RIO1727/dsh-prompt-optimizer#readme",
+  "bugs": {
+    "url": "https://github.com/RIO1727/dsh-prompt-optimizer/issues"
+  },
   "scripts": {
     "test": "node --import ./test/shim.mjs test/host.test.mjs && node test/client.test.mjs",
     "check": "node --check index.js && node --check client.js"
