@@ -244,6 +244,9 @@ window.__ModuleLoader__.load({
         const url = new URL(base || 'http://localhost/')
         url.search = ''
         url.hash = ''
+        // Treat the base as a directory: a page base like `dsh-app://app/index.html`
+        // must resolve to `dsh-app://app/`, never `dsh-app://app/index.html/`.
+        if (!url.pathname.endsWith('/')) url.pathname = url.pathname.replace(/[^/]*$/, '')
         if (!url.pathname.endsWith('/')) url.pathname += '/'
         return new URL(clean, url.href).href
       } catch {
